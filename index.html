@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BST Lab — Binary Search Trees, Explained Properly</title>
+<meta name="description" content="A complete interactive guide to Binary Search Trees: what they are, why they're fast, insert/search/delete with step-by-step animations, traversals, balancing, and a quiz.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="frame-corner tl"></div><div class="frame-corner tr"></div>
+<div class="frame-corner bl"></div><div class="frame-corner br"></div>
+
+<header id="top">
+  <div class="hud-line">BST//LAB &nbsp;·&nbsp; SYS:READY &nbsp;·&nbsp; NODES:<span id="stat-nodes">0</span> &nbsp;·&nbsp; HEIGHT:<span id="stat-height">0</span> &nbsp;·&nbsp; <a href="#playground">JUMP TO PLAYGROUND ↓</a></div>
+  <h1>BST&nbsp;Lab</h1>
+  <p class="tagline">Binary Search Trees — explained like you're smart, not like you've read CLRS.</p>
+</header>
+
+<nav id="nav">
+  <a href="#basics">Basics</a><a href="#rules">Rules</a><a href="#why">Why fast</a>
+  <a href="#operations">Operations</a><a href="#playground">Playground</a><a href="#traversals">Traversals</a>
+  <a href="#deletion-code">Code</a><a href="#balance">Balance</a><a href="#vs">Compare</a><a href="#quiz">Quiz</a>
+</nav>
+
+<main>
+
+<!-- ============ BASICS ============ -->
+<section id="basics">
+  <div class="sec-hud">01 / FOUNDATION</div>
+  <h2>What is a Binary Search Tree?</h2>
+  <div class="cheat-strip">ONE plain sentence: <strong>a BST is a way of storing sorted data so you can find any item by repeatedly cutting the search space in half</strong> — like guessing a number when the only answer you get is "higher" or "lower".</div>
+
+  <p>Start with that number game. I pick a number between 1 and 100. Your smartest move is to guess <strong>50</strong>. I say "higher". Now you know it's 51–100, so you guess <strong>75</strong>. Two guesses have already eliminated 75 numbers. A BST makes your computer play exactly this game against its own data.</p>
+
+  <p>It's a <span class="term" data-term="tree">tree<i class="tip">A structure with one top node (root) where every node points to nodes below it (children). Family tree, org chart, folder structure — all trees.</i></span>: one node at the top called the <strong>root</strong>, and each node holds a value plus (at most) two links — <strong>left</strong> and <strong>right</strong>. That's the "binary" part: two children max.</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-tag">THE ONE RULE</div>
+      <p style="font-size:1.05rem"><strong>Everything in the left subtree &lt; the node &lt; everything in the right subtree.</strong></p>
+      <p>Not just immediate children — the ENTIRE left side, all the way down. This single rule is the whole data structure. Everything else follows from it.</p>
+    </div>
+    <div class="card">
+      <div class="card-tag">WHAT A NODE LOOKS LIKE</div>
+<pre class="code-block">{ value: 50,
+  left:  → node or null,
+  right: → node or null }</pre>
+      <p>That's it. A number and two arrows. A BST with a million nodes is just this shape repeated a million times.</p>
+    </div>
+    <div class="card">
+      <div class="card-tag">THE PAYOFF</div>
+      <p>Because of the rule, every comparison throws away half the remaining tree. Search, insert and delete all follow one root-to-leaf path, so they cost <em>height</em>, not <em>size</em>.</p>
+      <p>1,000,000 items → about <strong>20 steps</strong> (if balanced). An unsorted array would need up to 1,000,000.</p>
+    </div>
+  </div>
+
+  <h3 class="try-title">Anatomy — hover or tap any node</h3>
+  <div class="viz-shell anatomy-shell">
+    <svg id="anatomy-svg" viewBox="0 0 760 320" role="img" aria-label="Anatomy of a binary search tree"></svg>
+    <div id="anatomy-caption" class="viz-caption">This whole picture IS a valid BST: 50 at the root, everything left of it is smaller, everything right is bigger.</div>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-tag">WATCH OUT</div>
+    <p>A BST is defined by the <strong>ordering rule</strong>, not by how it's drawn. The same 7 values can be arranged into many different BSTs — including a miserable straight line (see the Balance section). Good arrangement = fast; bad arrangement = slow.</p>
+  </div>
+</section>
+
+<!-- ============ RULES ============ -->
+<section id="rules">
+  <div class="sec-hud">02 / THE CONTRACT</div>
+  <h2>The BST rule, precisely</h2>
+  <div class="cheat-strip">For EVERY node: <strong>all values in its left subtree are smaller, all values in its right subtree are larger</strong> — checked all the way down, not just one level.</div>
+
+  <p>People get this wrong constantly, so let's be exact. It is NOT "left child &lt; node &lt; right child" (that's only one level). The correct statement involves entire <span class="term" data-term="subtree">subtrees<i class="tip">A node plus all of its descendants — a mini-tree hanging off a bigger one. Every node is the root of its own subtree.</i></span>:</p>
+<pre class="code-block">For every node X with value v:
+  every value in X.left's subtree  &lt; v
+  every value in X.right's subtree &gt; v</pre>
+
+  <div class="side-by-side">
+    <div>
+      <h3 class="ok">✔ Valid BST</h3>
+      <svg id="valid-svg" viewBox="0 0 360 250" role="img" aria-label="A valid binary search tree"></svg>
+      <p class="viz-caption">Check 50: left side {30,20,40} all &lt; 50, right side {70,60,80} all &gt; 50. Check 30: {20} &lt; 30, {40} &gt; 30. Every node passes.</p>
+    </div>
+    <div>
+      <h3 class="bad">✘ NOT a BST</h3>
+      <svg id="invalid-svg" viewBox="0 0 360 250" role="img" aria-label="An invalid tree that looks like a BST but breaks the ordering rule"></svg>
+      <p class="viz-caption">Looks innocent. But 55 sits in the LEFT subtree of 70, which sits in the RIGHT subtree of 50 — so 55 must be &gt; 50. It isn't. Rule broken, BST is dead.</p>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-tag">DUPLICATES</div>
+    <p>Classic BSTs (and this whole site) assume <strong>all values are distinct</strong>. If you must store duplicates, the usual convention is "equal goes right" (or keep a count in the node) — but then be consistent everywhere. Interviewers love asking about this.</p>
+  </div>
+</section>
+
+<!-- ============ WHY FAST ============ -->
+<section id="why">
+  <div class="sec-hud">03 / INTUITION</div>
+  <h2>Why is it fast? (Big-O, in plain English)</h2>
+  <div class="cheat-strip">Each comparison kills half the remaining candidates, so ~1,000,000 items need only ~20 comparisons. That log₂ n is the entire superpower of a BST.</div>
+
+  <p><span class="term" data-term="big-o">Big-O<i class="tip">"How does the work grow as the data grows?" O(n) = work grows with the data; O(log n) = work grows with the number of times you can halve the data. Big-O ignores constants, keeps the growth shape.</i></span> notation describes how the work grows. The key player here is <span class="term" data-term="logn">O(log n)<i class="tip">log₂ n = how many times you can cut n in half before reaching 1. n=1,000,000 → 20 cuts. Doubling the data adds ONE step.</i></span> — "log n" is literally "the number of times you can halve n". That's the number-guessing game again:</p>
+
+  <div class="number-game">
+    <div class="ng-title">HALVING DEMO — numbers left after each "higher/lower" answer, n = <span id="ng-n">1000000</span></div>
+    <div class="ng-controls">
+      <label>n = <input type="number" id="ng-input" min="10" max="1000000000" step="1" value="1000000"></label>
+      <button class="btn" id="ng-run">CUT IN HALF</button>
+      <span class="ng-count" id="ng-count">0 cuts</span>
+    </div>
+    <div id="ng-bars"></div>
+    <div class="ng-result" id="ng-result">Press CUT IN HALF repeatedly until the bar disappears. Count the cuts — that's ⌈log₂ n⌉, the depth of a balanced BST.</div>
+  </div>
+
+  <h3>The comparison that matters</h3>
+  <div class="table-wrap">
+  <table class="spec-table">
+    <thead><tr><th>n (items)</th><th>log₂ n ≈ BST steps</th><th>Linear scan steps</th><th>You save</th></tr></thead>
+    <tbody>
+      <tr><td>1,000</td><td>~10</td><td>1,000</td><td>100×</td></tr>
+      <tr><td>1,000,000</td><td>~20</td><td>1,000,000</td><td>50,000×</td></tr>
+      <tr><td>1,000,000,000</td><td>~30</td><td>1,000,000,000</td><td>33,000,000×</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="viz-caption">Each row: doubling the data adds just ONE more BST step, while a linear scan doubles completely.</p>
+
+  <div class="callout warn">
+    <div class="callout-tag">THE CATCH</div>
+    <p>log n is only true for a <strong>bushy</strong> tree. Insert 10, 20, 30, 40, 50 (already-sorted data — extremely common) and every node goes right: you get a staircase, height = n − 1, and search is back to O(n). This is exactly why self-balancing trees exist — <a href="#balance">Balance section</a>.</p>
+  </div>
+</section>
+
+<!-- ============ OPERATIONS ============ -->
+<section id="operations">
+  <div class="sec-hud">04 / MECHANICS</div>
+  <h2>The four operations, step by step</h2>
+  <div class="cheat-strip">Search, insert, min: all walk ONE path down the tree, left or right at each node. Delete is the only one with a trick — when the node has two children, you swap in its <strong>in-order successor</strong>.</div>
+
+  <div class="op-tabs" id="op-tabs">
+    <button class="op-tab active" data-op="search">SEARCH</button>
+    <button class="op-tab" data-op="insert">INSERT</button>
+    <button class="op-tab" data-op="delete">DELETE</button>
+    <button class="op-tab" data-op="minmax">MIN / MAX</button>
+  </div>
+
+  <div class="op-panel" id="op-panel">
+    <div class="op-steps" id="op-steps"></div>
+    <div class="op-anim">
+      <svg id="op-svg" viewBox="0 0 640 300" role="img" aria-label="Operation animation"></svg>
+      <div class="op-controls">
+        <button class="btn" id="op-prev">◀ PREV</button>
+        <span class="op-step-label" id="op-step-label">Step 1/6</span>
+        <button class="btn" id="op-next">NEXT ▶</button>
+        <button class="btn ghost" id="op-replay">↺ REPLAY</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PLAYGROUND ============ -->
+<section id="playground">
+  <div class="sec-hud">05 / HANDS-ON</div>
+  <h2>Playground — build your own BST</h2>
+  <div class="cheat-strip">Type a number, hit INSERT and watch the path it takes. Try inserting 10, 20, 30, 40, 50 to see the tree collapse into a staircase — then press REBALANCE to fix it.</div>
+
+  <div class="pg-controls">
+    <form class="pg-form" id="pg-insert-form">
+      <input type="number" id="pg-insert-input" placeholder="value" autocomplete="off">
+      <button type="submit" class="btn">INSERT</button>
+    </form>
+    <form class="pg-form" id="pg-search-form">
+      <input type="number" id="pg-search-input" placeholder="find…" autocomplete="off">
+      <button type="submit" class="btn">SEARCH</button>
+    </form>
+    <form class="pg-form" id="pg-delete-form">
+      <input type="number" id="pg-delete-input" placeholder="delete…" autocomplete="off">
+      <button type="submit" class="btn">DELETE</button>
+    </form>
+    <div class="pg-buttons">
+      <button class="btn ghost" id="pg-random">🎲 RANDOM 7</button>
+      <button class="btn ghost" id="pg-sorted">1..7 SORTED</button>
+      <button class="btn ghost" id="pg-clear">✕ CLEAR</button>
+      <button class="btn" id="pg-balance">⟳ REBALANCE</button>
+    </div>
+  </div>
+
+  <div class="viz-shell">
+    <svg id="pg-svg" viewBox="0 0 900 520" role="img" aria-label="Interactive BST playground"></svg>
+    <div id="pg-hint" class="viz-caption">Tree is empty — insert a first number to create the root. Try 50, then 30, then 70.</div>
+  </div>
+
+  <div class="pg-bottom">
+    <div class="step-log">
+      <div class="log-title">STEP LOG <span class="log-note">(every comparison, on the record)</span></div>
+      <div id="pg-log" class="log-body"></div>
+    </div>
+    <div class="pg-readout">
+      <div class="readout-title">TREE VITALS</div>
+      <div class="readout-grid">
+        <div><span>Nodes</span><b id="ro-nodes">0</b></div>
+        <div><span>Height</span><b id="ro-height">0</b></div>
+        <div><span>Perfectly balanced?</span><b id="ro-bal">—</b></div>
+        <div><span>Worst-case search</span><b id="ro-worst">0</b></div>
+        <div><span>Traversals</span><b id="ro-trav" style="font-size:.8rem">—</b></div>
+        <div><span>Values (sorted)</span><b id="ro-sorted" style="font-size:.8rem">—</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TRAVERSALS ============ -->
+<section id="traversals">
+  <div class="sec-hud">06 / WALKTHROUGHS</div>
+  <h2>Traversals — visiting every node</h2>
+  <div class="cheat-strip">In-order walks a BST in SORTED order (this is the party trick). Pre/post-order are for copying, deleting and evaluating trees. Level-order reads it top-down like a fan wave.</div>
+
+  <div class="trav-tabs" id="trav-tabs">
+    <button class="trav-tab active" data-trav="inorder">IN-ORDER<br><small>Left · Node · Right</small></button>
+    <button class="trav-tab" data-trav="preorder">PRE-ORDER<br><small>Node · Left · Right</small></button>
+    <button class="trav-tab" data-trav="postorder">POST-ORDER<br><small>Left · Right · Node</small></button>
+    <button class="trav-tab" data-trav="levelorder">LEVEL-ORDER<br><small>Top row → down</small></button>
+  </div>
+
+  <div class="viz-shell">
+    <svg id="trav-svg" viewBox="0 0 640 300" role="img" aria-label="Traversal animation"></svg>
+    <div class="op-controls">
+      <button class="btn ghost" id="trav-prev">◀ PREV</button>
+      <button class="btn" id="trav-play">▶ PLAY</button>
+      <button class="btn ghost" id="trav-next">NEXT ▶</button>
+    </div>
+    <div id="trav-order" class="trav-order">Visit order: <span class="trav-seq"></span></div>
+    <div id="trav-note" class="viz-caption"></div>
+  </div>
+
+  <div class="card-grid">
+    <div class="card"><div class="card-tag">IN-ORDER — sorted output</div><p>Recursively: left subtree, then the node, then right subtree. On ANY valid BST this prints values in ascending order. It's how you dump a BST to a sorted list, validate it, or debug it.</p></div>
+    <div class="card"><div class="card-tag">PRE-ORDER — copy a tree</div><p>Node first, then children. The output lets you rebuild the exact same tree (insert in that order) — used for serializing BSTs.</p></div>
+    <div class="card"><div class="card-tag">POST-ORDER — delete a tree</div><p>Children first, node last. You can't delete a node before its children are gone, so post-order is the natural "free the whole tree" order. Also how expression trees get evaluated.</p></div>
+    <div class="card"><div class="card-tag">LEVEL-ORDER — by rows</div><p>Uses a <span class="term" data-term="queue">queue<i class="tip">First-in-first-out list. Add children to the back, take nodes from the front — the rows come out in order.</i></span> instead of recursion. Used for printing the tree by depth, and in the "is it balanced?" check.</p></div>
+  </div>
+</section>
+
+<!-- ============ CODE ============ -->
+<section id="deletion-code">
+  <div class="sec-hud">07 / IMPLEMENTATION</div>
+  <h2>Deletion — the only tricky operation</h2>
+  <div class="cheat-strip">Deleting a node has 3 cases: a leaf (just remove it), one child (child takes its place), two children (replace its value with its in-order successor, then delete that successor deeper down).</div>
+
+  <p>Search and insert are one clean walk down; you've watched them in the Playground. Deletion is where implementations get tangled, so here is the full logic, exhaustively commented:</p>
+
+  <div class="code-tabs" id="code-tabs">
+    <button class="code-tab active" data-code="delete">DELETE</button>
+    <button class="code-tab" data-code="all">INSERT · SEARCH · TRAVERSALS</button>
+  </div>
+<pre class="code-block big" id="code-view"></pre>
+
+  <div class="card-grid">
+    <div class="card"><div class="card-tag">CASE 1 — LEAF</div><p>Node has no children (like 20 or 80 in the demo tree). Just cut it off. Nothing else moves.</p></div>
+    <div class="card"><div class="card-tag">CASE 2 — ONE CHILD</div><p>Node has exactly one child. Splice: the child takes the node's place. (Also covers the "node has only a right child" variant.)</p></div>
+    <div class="card"><div class="card-tag">CASE 3 — TWO CHILDREN</div><p>The node's value is replaced by its <strong>in-order successor</strong> — the smallest value in its right subtree (leftmost node down the right side). Then delete that successor (it has at most one child, so it falls back to Case 1 or 2).</p></div>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-tag">WHY THE SUCCESSOR WORKS</div>
+    <p>The in-order successor is the smallest value that is still bigger than the deleted node — it's the only candidate that keeps every order relationship intact: bigger than the whole left subtree, smaller than the rest of the right subtree.</p>
+  </div>
+</section>
+
+<!-- ============ BALANCE ============ -->
+<section id="balance">
+  <div class="sec-hud">08 / THE ACHILLES HEEL</div>
+  <h2>Balance — the BST's weak spot</h2>
+  <div class="cheat-strip">Insert sorted data and your "fast" BST silently degrades into a linked list. Self-balancing trees (AVL, Red-Black) rotate nodes on every insert so the height stays ~log n forever.</div>
+
+  <div class="balance-demo">
+    <div>
+      <h3 class="ok">BUSHY — height 3</h3>
+      <svg id="bushy-svg" viewBox="0 0 320 220" role="img" aria-label="A balanced BST of 7 nodes"></svg>
+      <p class="viz-caption">Values 10–70 inserted as 40,20,60,10,30,50,70. 7 nodes, height 3, any search ≤ 3 steps. This is what log n feels like.</p>
+    </div>
+    <div>
+      <h3 class="bad">STAIRCASE — height 7</h3>
+      <svg id="stair-svg" viewBox="0 0 320 220" role="img" aria-label="A degenerate BST of the same 7 nodes as a chain"></svg>
+      <p class="viz-caption">The SAME 7 values inserted sorted (10,20,30,40,50,60,70). Height 7, finding 70 takes 7 steps. Same rule satisfied — terrible shape. Insertion order decides everything.</p>
+    </div>
+  </div>
+
+  <h3>What balanced trees do about it</h3>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-tag">AVL TREE</div>
+      <p>Every node stores its height; after each insert/delete the tree checks each ancestor's <em>balance factor</em> (left height − right height). If it hits ±2, a <strong>rotation</strong> rearranges 2–3 nodes locally and the height shrinks back. Strictest balance → fastest lookups, more rotations on writes.</p>
+    </div>
+    <div class="card">
+      <div class="card-tag">RED-BLACK TREE</div>
+      <p>Nodes are coloured red/black under 5 rules that keep the longest path ≤ 2× the shortest. Looser than AVL → fewer rotations, slightly taller trees. This is what C++ <code>std::map</code>, Java <code>TreeMap</code> and Linux's CPU scheduler use.</p>
+    </div>
+    <div class="card">
+      <div class="card-tag">THE ROTATION, IN ONE BREATH</div>
+      <p>A rotation promotes one child to parent and demotes the old parent to its child, keeping the BST RULE intact — 3 pointers change. It's the single move that fixes every imbalance.</p>
+    </div>
+  </div>
+  <div class="callout info">
+    <div class="callout-tag">IF YOU JUST NEED A SORTED DICT</div>
+    <p>You almost never hand-roll a balanced BST — use the language's built-in one (C++ <code>std::map</code>, Java <code>TreeMap</code>) or a <code>sortedcontainers.SortedDict</code> in Python. Hand-rolling is for learning and interviews, which is exactly what this page is for.</p>
+  </div>
+</section>
+
+<!-- ============ VS ============ -->
+<section id="vs">
+  <div class="sec-hud">09 / CONTEXT</div>
+  <h2>BST vs everything else</h2>
+  <div class="cheat-strip">Use a BST when you need sorted-order operations (floor, ceiling, ranges, "next bigger") on changing data. Use a hash table for pure get/put speed. Use an array when data never changes.</div>
+
+  <div class="table-wrap">
+  <table class="spec-table">
+    <thead><tr><th>Structure</th><th>Search</th><th>Insert</th><th>Sorted output</th><th>Min/Max</th><th>Range query</th><th>Best when</th></tr></thead>
+    <tbody>
+      <tr><td>BST (balanced)</td><td>O(log n)</td><td>O(log n)</td><td class="ok-cell">O(n) sorted</td><td>O(log n)</td><td class="ok-cell">O(log n + k)</td><td>You need order + fast updates</td></tr>
+      <tr><td>BST (worst case)</td><td class="bad-cell">O(n)</td><td class="bad-cell">O(n)</td><td>O(n)</td><td class="bad-cell">O(n)</td><td class="bad-cell">O(n)</td><td>Nobody — this is the bug</td></tr>
+      <tr><td>Hash table</td><td class="ok-cell">O(1) avg</td><td class="ok-cell">O(1) avg</td><td class="bad-cell">no</td><td class="bad-cell">no</td><td class="bad-cell">no</td><td>Exact-key get/put, nothing ordered</td></tr>
+      <tr><td>Sorted array</td><td>O(log n)</td><td class="bad-cell">O(n)</td><td class="ok-cell">already sorted</td><td class="ok-cell">O(1)</td><td class="ok-cell">O(log n + k)</td><td>Data is static (binary search)</td></tr>
+      <tr><td>Linked list</td><td class="bad-cell">O(n)</td><td>O(1) at head</td><td class="bad-cell">no</td><td class="bad-cell">O(n)</td><td class="bad-cell">O(n)</td><td>Only inserts/deletes at ends</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="viz-caption">k = number of results in the range query. Hash tables "win" get/put but can't answer "what's the smallest key ≥ 25?" without scanning everything.</p>
+
+  <div class="callout info">
+    <div class="callout-tag">REAL-WORLD USERS</div>
+    <p>Database indexes (B-trees — the on-disk sibling of a BST), C++ <code>std::map</code>/<code>std::set</code>, Java <code>TreeMap</code>/<code>TreeSet</code>, event schedulers ("what fires next?"), autocomplete prefix structures, and the Linux kernel's CFS scheduler all live on this family of trees.</p>
+  </div>
+</section>
+
+<!-- ============ QUIZ ============ -->
+<section id="quiz">
+  <div class="sec-hud">10 / CERTIFICATION</div>
+  <h2>Quiz — did any of this stick?</h2>
+  <div class="cheat-strip">8 questions, instant feedback, plain-English explanations for every answer — including the ones you get right.</div>
+  <div id="quiz-root"></div>
+</section>
+
+</main>
+
+<footer>
+  <p>BST LAB — self-contained (zero dependencies, works offline). Built for people who'd rather understand than memorize.</p>
+  <p class="foot-hud">EOF // <a href="#top">RETURN TO TOP</a></p>
+</footer>
+
+<script src="js/tree.js"></script>
+<script src="js/viz.js"></script>
+<script src="js/quiz.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
